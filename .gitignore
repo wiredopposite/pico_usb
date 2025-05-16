@@ -1,0 +1,7 @@
+build
+CMakeCache.txt
+CMakeFiles
+examples/build
+examples/CMakeFiles
+examples/CMakeCache.txt
+.vscode
