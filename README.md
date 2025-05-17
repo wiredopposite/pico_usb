@@ -15,7 +15,7 @@ A flexible USB device stack for the Raspberry Pi Pico that supports both hardwar
     - Customizable enumeration buffer size (USBD_ENUMERATION_SIZE)
 
 ### Usage
-See ```examples/cdc_device``` for a basic CDC device example. ```examples/hub_device``` contains an example USB hub implementation via PIO with 2 downstream devices, one HID gamepad, and one CDC device.
+See ```examples/cdc_device``` for a basic CDC device example. ```examples/hub_device``` contains an example USB hub implementation, using PIO, with 2 downstream devices, one HID gamepad, and one CDC device.
 
 - PIO USB Requirements
     - 27 OHM series resistors on DP and DP pins
