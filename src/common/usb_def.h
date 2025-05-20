@@ -35,11 +35,13 @@ extern "C" {
 
 #define USB_SUBCLASS_NONE       0x00    /* No subclass. */
 #define USB_SUBCLASS_IAD        0x02    /* Subclass defined by interface */
+#define USB_SUBCLASS_VENDOR     0xFF    /* Vendor subclass. */
 
 /* USB Protocol */
 
 #define USB_PROTOCOL_NONE       0x00    /* No protocol. */
 #define USB_PROTOCOL_IAD        0x01    /* Protocol defined by interface */
+#define USB_PROTOCOL_VENDOR     0xFF    /* Vendor protocol. */
 
 /* USB BCD Version */
 
@@ -166,7 +168,7 @@ typedef struct __attribute__((packed)) {
     uint16_t    wIndex;         /* It is used to pass a parameter to the device, specific to the request.*/
     uint16_t    wLength;        /* This field specifies the length of the data transferred during the second phase of the control transfer.*/
     uint8_t     data[];         /* Data payload.*/
-} usbd_ctrl_req_t;
+} usb_ctrl_req_t;
 
 /* USB descriptor header */
 typedef struct __attribute__((packed)) {

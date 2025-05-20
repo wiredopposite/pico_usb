@@ -10,16 +10,16 @@
 extern "C" {
 #endif
 
-typedef enum {
-    USBD_EVENT_RESET        = (1U << 0),
-    USBD_EVENT_SOF          = (1U << 1),
-    USBD_EVENT_SUSPEND      = (1U << 2),
-    USBD_EVENT_RESUME       = (1U << 3),
-    USBD_EVENT_WAKEUP       = (1U << 4),
-    USBD_EVENT_EP_CMPLT     = (1U << 5),
-    USBD_EVENT_SETUP        = (1U << 6),
-    USBD_EVENT_ERROR        = (1U << 7),
-} usbd_event_t;
+// typedef enum {
+//     USBD_EVENT_RESET        = (1U << 0),
+//     USBD_EVENT_SOF          = (1U << 1),
+//     USBD_EVENT_SUSPEND      = (1U << 2),
+//     USBD_EVENT_RESUME       = (1U << 3),
+//     USBD_EVENT_WAKEUP       = (1U << 4),
+//     USBD_EVENT_EP_CMPLT     = (1U << 5),
+//     USBD_EVENT_SETUP        = (1U << 6),
+//     USBD_EVENT_ERROR        = (1U << 7),
+// } usbd_event_t;
 
 typedef bool (*dcd_init)(void);
 typedef void (*dcd_deinit)(void);
@@ -37,7 +37,7 @@ typedef bool (*dcd_ep_ready)(uint8_t dport, uint8_t epaddr);
 typedef uint16_t (*dcd_get_frame)(void);
 typedef bool (*dcd_task)(uint8_t dport, uint32_t* event_mask, uint32_t* ep_mask);
 
-typedef struct {
+typedef struct dcd_driver_ {
     dcd_init          init;
     dcd_deinit        deinit;
     dcd_connect       connect;

@@ -102,7 +102,7 @@ static const usb_desc_hub_t HUB_DESC_HUB = {
                               USB_HUB_CHAR_THINKTIME_8_FS_BITS,
     .bPowerOnToPowerGood    = 0x16,
     .bHubControlCurrent     = 0xFA,
-    .bRemoveAndPowerMask    = { (1U << PORT_HUB)  | /* Mask indicates non-removable ports */
+    .bRemoveAndPowerMask    = { (1U << PORT_HUB) | /* Mask indicates non-removable ports */
                                 (1U << PORT_HID) |
                                 (1U << PORT_CDC) }
 };
@@ -119,7 +119,7 @@ static uint8_t        ds_status = 0; /* Downstream ports with unreported status 
 
 /* Helpers */
 
-static bool hub_feature_req(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
+static bool hub_feature_req(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     const uint8_t feature = req->wValue & 0xFF;
     const uint8_t ds_port = req->wIndex & 0xFF;
     const uint8_t prev_ds_status = ds_status;
@@ -192,7 +192,7 @@ static void hub_deinit_cb(usbd_handle_t* handle) {
     printf("HUB: Deinit\n");
 }
 
-static bool hub_get_desc_cb(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
+static bool hub_get_desc_cb(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     switch (USB_DESC_TYPE(req->wValue)) {
     case USB_DTYPE_DEVICE:
         printf("HUB: Get desc device\n");
@@ -258,7 +258,7 @@ static void hub_configured_cb(usbd_handle_t* handle, uint8_t config) {
     printf("HUB: Configured, #%d\n", config);
 }
 
-static bool hub_ctrl_xfer(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
+static bool hub_ctrl_xfer(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     switch (req->bmRequestType & USB_REQ_TYPE_Msk) {
     case USB_REQ_TYPE_STANDARD:
         switch (req->bRequest) {

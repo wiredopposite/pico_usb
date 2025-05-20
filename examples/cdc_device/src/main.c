@@ -34,7 +34,7 @@ static void cdc_deinit_cb(usbd_handle_t* handle) {
     (void)handle;
 }
 
-static bool cdc_get_desc_cb(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
+static bool cdc_get_desc_cb(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     switch (USB_DESC_TYPE(req->wValue)) {
     case USB_DTYPE_DEVICE:
         return usbd_send_ctrl_resp(handle, &CDC_DESC_DEVICE, 
@@ -60,7 +60,7 @@ static bool cdc_get_desc_cb(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
     return false;
 }
 
-static bool cdc_ctrl_xfer_cb(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
+static bool cdc_ctrl_xfer_cb(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     if ((req->bmRequestType & (USB_REQ_TYPE_Msk | USB_REQ_RECIP_Msk)) !=
         (USB_REQ_TYPE_CLASS | USB_REQ_RECIP_INTERFACE)) {
         printf("CDC: Invalid request type: %02X\n", req->bmRequestType);

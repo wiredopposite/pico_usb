@@ -22,6 +22,7 @@
 #include "usb_def.h"
 #include "usb_util.h"
 #include "usb_log.h"
+#include "usbd.h"
 #include "dcd/dcd.h"
 
 #ifndef USB_PIO_LOG_ENABLE

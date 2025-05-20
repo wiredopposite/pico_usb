@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <pico/unique_id.h>
 #include "usb_def.h"
 
 #ifdef __cplusplus
@@ -26,8 +27,43 @@ extern "C" {
 #define USBD_ENUMERATION_SIZE   256
 #endif
 
-typedef struct usbd_handle usbd_handle_t;
-typedef void (*usbd_request_cb)(usbd_handle_t* handle, usbd_ctrl_req_t* req);
+#define USBD_SERIAL_BUF_SIZE (sizeof(usb_desc_string_t) + (PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4) + 4)
+
+typedef enum {
+    USBD_STATE_DISABLED = 0,
+    USBD_STATE_DEFAULT,
+    USBD_STATE_ADDRESSED,
+    USBD_STATE_CONFIGURED,
+} usbd_state_t;
+
+typedef enum {
+    USB_CTRL_STAGE_IDLE = 0,
+    USB_CTRL_STAGE_DATA_OUT,
+    USB_CTRL_STAGE_DATA_IN,
+    USB_CTRL_STAGE_STATUS_IN,
+    USB_CTRL_STAGE_STATUS_OUT,
+} ctrl_stage_t;
+
+typedef enum {
+    USBD_EVENT_RESET    = (1U << 0),
+    USBD_EVENT_SOF      = (1U << 1),
+    USBD_EVENT_SUSPEND  = (1U << 2),
+    USBD_EVENT_RESUME   = (1U << 3),
+    USBD_EVENT_WAKEUP   = (1U << 4),
+    USBD_EVENT_EP_CMPLT = (1U << 5),
+    USBD_EVENT_SETUP    = (1U << 6),
+    USBD_EVENT_ERROR    = (1U << 7),
+} usbd_event_t;
+
+typedef struct ctrl_ep_     ctrl_ep_t;
+typedef struct dcd_driver_  dcd_driver_t;
+typedef struct usbd_handle_ usbd_handle_t;
+
+typedef void (*usbd_endpoint_cb)(usbd_handle_t* handle, usbd_event_t event, uint8_t epaddr);
+typedef void (*usbd_request_cb)(usbd_handle_t* handle, usb_ctrl_req_t* req);
+
+// typedef struct usbd_handle usbd_handle_t;
+// typedef void (*usbd_request_cb)(usbd_handle_t* handle, usb_ctrl_req_t* req);
 
 /* ---- Application callbacks ---- */
 
@@ -86,7 +122,7 @@ typedef void (*usbd_configured_cb)(usbd_handle_t *handle, uint8_t config);
  * 
  * @return true if the descriptor was handled, false otherwise.
  */
-typedef bool (*usbd_get_desc_cb)(usbd_handle_t *handle, const usbd_ctrl_req_t *request);
+typedef bool (*usbd_get_desc_cb)(usbd_handle_t *handle, const usb_ctrl_req_t *request);
 
 /**
  * @brief USB driver control transfer callback.
@@ -102,7 +138,7 @@ typedef bool (*usbd_get_desc_cb)(usbd_handle_t *handle, const usbd_ctrl_req_t *r
  * 
  * @return true if the request was handled, false otherwise.
  */
-typedef bool (*usbd_ctrl_xfer_cb)(usbd_handle_t *handle, const usbd_ctrl_req_t *request);
+typedef bool (*usbd_ctrl_xfer_cb)(usbd_handle_t *handle, const usb_ctrl_req_t *request);
 
 /**
  * @brief USB driver endpoint transfer complete callback.
@@ -130,6 +166,36 @@ typedef enum {
     USBD_HW_USB = 0, /* Native USB hardware. */
     USBD_HW_PIO,     /* Emulated USB via PIO. */
 } usbd_hw_type_t;
+
+typedef struct ctrl_ep_ {
+    ctrl_stage_t    stage;
+    usbd_request_cb complete_cb;
+
+    uint8_t     tx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
+    uint16_t    tx_idx;
+    uint16_t    tx_len;
+    
+    uint8_t     rx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
+    uint16_t    rx_idx;
+    uint16_t    rx_len;
+} ctrl_ep_t;
+
+typedef struct usbd_handle_ {
+    uint8_t             port;
+
+    usbd_state_t        state;
+    usbd_hw_type_t      hw_type;
+    
+    usbd_driver_t       app_driver;
+    const dcd_driver_t* dcd_driver;
+
+    uint8_t             config_num;
+    usbd_endpoint_cb    endpoint_cb[USBD_ENDPOINTS_MAX];
+    uint16_t            ctrl_ep_size;
+    ctrl_ep_t           ctrl_ep;
+    
+    uint8_t             desc_serial_buf[USBD_SERIAL_BUF_SIZE] __attribute__((aligned(2)));
+} usbd_handle_t;
 
 /* ---- USBD API ---- */
 

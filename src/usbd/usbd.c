@@ -4,13 +4,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <pico/unique_id.h>
+// #include <pico/unique_id.h>
 #include "dcd/dcd.h"
 #include "usb_def.h"
 #include "usb_util.h"
 #include "usb_log.h"
 
-#define USBD_SERIAL_BUF_SIZE (sizeof(usb_desc_string_t) + (PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4) + 4)
+// #define USBD_SERIAL_BUF_SIZE (sizeof(usb_desc_string_t) + (PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4) + 4)
 
 #define VERIFY_HANDLE(handle, ret) \
     do { \
@@ -29,48 +29,48 @@
         } \
     } while (0)
 
-typedef enum {
-    USBD_STATE_DISABLED = 0,
-    USBD_STATE_DEFAULT,
-    USBD_STATE_ADDRESSED,
-    USBD_STATE_CONFIGURED,
-} usbd_state_t;
+// typedef enum usbd_state_ {
+//     USBD_STATE_DISABLED = 0,
+//     USBD_STATE_DEFAULT,
+//     USBD_STATE_ADDRESSED,
+//     USBD_STATE_CONFIGURED,
+// } usbd_state_t;
 
-typedef enum {
-    USB_CTRL_STAGE_IDLE = 0,
-    USB_CTRL_STAGE_DATA_OUT,
-    USB_CTRL_STAGE_DATA_IN,
-    USB_CTRL_STAGE_STATUS_IN,
-    USB_CTRL_STAGE_STATUS_OUT,
-} ctrl_stage_t;
+// typedef enum ctrl_stage_ {
+//     USB_CTRL_STAGE_IDLE = 0,
+//     USB_CTRL_STAGE_DATA_OUT,
+//     USB_CTRL_STAGE_DATA_IN,
+//     USB_CTRL_STAGE_STATUS_IN,
+//     USB_CTRL_STAGE_STATUS_OUT,
+// } ctrl_stage_t;
 
-typedef void (*usbd_endpoint_cb)(usbd_handle_t* handle, usbd_event_t event, uint8_t epaddr);
+// typedef void (*usbd_endpoint_cb)(usbd_handle_t* handle, usbd_event_t event, uint8_t epaddr);
 
-typedef struct ctrl_ep {
-    ctrl_stage_t    stage;
-    usbd_request_cb complete_cb;
+// typedef struct ctrl_ep_ {
+//     ctrl_stage_t    stage;
+//     usbd_request_cb complete_cb;
 
-    uint8_t     tx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
-    uint16_t    tx_idx;
-    uint16_t    tx_len;
+//     uint8_t     tx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
+//     uint16_t    tx_idx;
+//     uint16_t    tx_len;
     
-    uint8_t     rx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
-    uint16_t    rx_idx;
-    uint16_t    rx_len;
-} ctrl_ep_t;
+//     uint8_t     rx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
+//     uint16_t    rx_idx;
+//     uint16_t    rx_len;
+// } ctrl_ep_t;
 
-typedef struct usbd_handle {
-    usbd_state_t        state;
-    usbd_hw_type_t      hw_type;
-    uint8_t             port;
-    usbd_driver_t       app_driver;
-    const dcd_driver_t* dcd_driver;
-    uint8_t             config_num;
-    usbd_endpoint_cb    endpoint_cb[USBD_ENDPOINTS_MAX];
-    uint16_t            ctrl_ep_size;
-    ctrl_ep_t           ctrl_ep;
-    uint8_t             desc_serial_buf[USBD_SERIAL_BUF_SIZE] __attribute__((aligned(2)));
-} usbd_handle_t;
+// typedef struct usbd_handle {
+//     usbd_state_t        state;
+//     usbd_hw_type_t      hw_type;
+//     uint8_t             port;
+//     usbd_driver_t       app_driver;
+//     const dcd_driver_t* dcd_driver;
+//     uint8_t             config_num;
+//     usbd_endpoint_cb    endpoint_cb[USBD_ENDPOINTS_MAX];
+//     uint16_t            ctrl_ep_size;
+//     ctrl_ep_t           ctrl_ep;
+//     uint8_t             desc_serial_buf[USBD_SERIAL_BUF_SIZE] __attribute__((aligned(2)));
+// } usbd_handle_t;
 
 static usbd_handle_t handles[USBD_DEVICES_MAX] = {0};
 static const size_t usbd_handles_size = sizeof(handles);
@@ -114,13 +114,13 @@ static void usbd_ep_complete_cb(usbd_handle_t* handle, usbd_event_t event, uint8
     handle->app_driver.ep_xfer_cb(handle, epaddr);
 }
 
-static void usbd_set_address_cb(usbd_handle_t* handle, usbd_ctrl_req_t* req) {
+static void usbd_set_address_cb(usbd_handle_t* handle, usb_ctrl_req_t* req) {
     handle->dcd_driver->set_address(handle->port, req->wValue);
     handle->state = (req->wValue) ? USBD_STATE_ADDRESSED : USBD_STATE_DEFAULT;
     usb_logd("Set daddr: %d, port: %d\n", req->wValue, handle->port);
 }
 
-static void usbd_config_complete_cb(usbd_handle_t* handle, usbd_ctrl_req_t* req) {
+static void usbd_config_complete_cb(usbd_handle_t* handle, usb_ctrl_req_t* req) {
     handle->state = USBD_STATE_CONFIGURED;
     handle->app_driver.configured_cb(handle, handle->config_num);
 }
@@ -152,7 +152,7 @@ static bool usbd_process_set_config_req(usbd_handle_t* handle, uint8_t config) {
     return true;
 }
 
-static bool usbd_process_std_req(usbd_handle_t* handle, usbd_ctrl_req_t* req) {
+static bool usbd_process_std_req(usbd_handle_t* handle, usb_ctrl_req_t* req) {
     switch (req->bmRequestType & USB_REQ_RECIP_Msk) {
     case USB_REQ_RECIP_DEVICE:
         switch (req->bRequest) {
@@ -222,7 +222,7 @@ static bool usbd_process_std_req(usbd_handle_t* handle, usbd_ctrl_req_t* req) {
     return false;
 }
 
-static bool usbd_process_ctrl_req(usbd_handle_t* handle, usbd_ctrl_req_t* req) {
+static bool usbd_process_ctrl_req(usbd_handle_t* handle, usb_ctrl_req_t* req) {
     if (req->bRequest == USB_REQ_STD_GET_DESCRIPTOR) {
         return handle->app_driver.get_desc_cb(handle, req);
     }
@@ -268,7 +268,7 @@ static void usbd_process_ctrl_eptx(usbd_handle_t* handle) {
     case USB_CTRL_STAGE_STATUS_IN:
         handle->ctrl_ep.stage = USB_CTRL_STAGE_IDLE;
         if (handle->ctrl_ep.complete_cb != NULL) {
-            usbd_ctrl_req_t* req = (usbd_ctrl_req_t*)handle->ctrl_ep.rx_buf;
+            usb_ctrl_req_t* req = (usb_ctrl_req_t*)handle->ctrl_ep.rx_buf;
             handle->ctrl_ep.complete_cb(handle, req);
             handle->ctrl_ep.complete_cb = NULL;
         }
@@ -280,7 +280,7 @@ static void usbd_process_ctrl_eptx(usbd_handle_t* handle) {
 
 static void usbd_process_ctrl_eprx(usbd_handle_t* handle) {
     int32_t len = 0;
-    usbd_ctrl_req_t* req = (usbd_ctrl_req_t*)handle->ctrl_ep.rx_buf;
+    usb_ctrl_req_t* req = (usb_ctrl_req_t*)handle->ctrl_ep.rx_buf;
 
     switch (handle->ctrl_ep.stage) {
     case USB_CTRL_STAGE_IDLE:
@@ -288,7 +288,7 @@ static void usbd_process_ctrl_eprx(usbd_handle_t* handle) {
                     handle->port, 
                     handle->ctrl_ep.rx_buf
                 );
-        if (len != sizeof(usbd_ctrl_req_t)) {
+        if (len != sizeof(usb_ctrl_req_t)) {
             usbd_stall_ctrl_ep(handle);
             usb_logd("Error: Ctrl Setup: %d\n", len);
             return;
@@ -426,8 +426,6 @@ static void usbd_process_event(usbd_handle_t* handle, usbd_event_t event, uint8_
         usbd_reset_device(handle);
         break;
     case USBD_EVENT_SETUP:
-        /* Clean up any previous IN xfer that was queued */
-        // handle->dcd_driver->ep_xfer_abort(handle->port, 0 | USB_EP_DIR_IN);
     case USBD_EVENT_EP_CMPLT:
         if (handle->endpoint_cb[epnum] != NULL) {
             handle->endpoint_cb[epnum](handle, event, epaddr);

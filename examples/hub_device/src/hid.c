@@ -44,7 +44,7 @@ static void hid_configured_cb(usbd_handle_t* handle, uint8_t config) {
     printf("HID: Mounted, Config: %d\n", config);
 }
 
-static bool hid_get_desc_cb(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
+static bool hid_get_desc_cb(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     switch (USB_DESC_TYPE(req->wValue)) {
     case USB_DTYPE_DEVICE:
         printf("HID: Get desc device\n");
@@ -107,7 +107,7 @@ static bool hid_get_desc_cb(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
     }
 }
 
-static bool hid_ctrl_xfer_cb(usbd_handle_t* handle, const usbd_ctrl_req_t* req) {
+static bool hid_ctrl_xfer_cb(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     if ((req->bmRequestType & (USB_REQ_TYPE_Msk | USB_REQ_RECIP_Msk)) !=
         (USB_REQ_TYPE_CLASS | USB_REQ_RECIP_INTERFACE)) {
         return false;

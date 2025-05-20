@@ -13,6 +13,7 @@
 #include "usb_log.h"
 #include "usb_def.h"
 #include "usb_util.h"
+#include "usbd.h"
 #include "dcd/dcd.h"
 
 #if (USBD_ENDPOINTS_MAX > USB_NUM_ENDPOINTS)
@@ -216,7 +217,7 @@ static bool pico_usbd_ep_config(uint8_t dport, uint8_t epaddr, uint8_t eptype, u
     ep->eptype = eptype;
     uintptr_t buf_ptr = 0;
     if (ep->eptype == USB_EP_TYPE_CONTROL) {
-        ep->epsize = 64;
+        ep->epsize = epsize;
     } else {
         ep->epsize = ((epsize + 63) / 64) * 64; // Round up to nearest 64 bytes
         if (ep->eptype & USB_EP_TYPE_BULK) {
@@ -329,6 +330,9 @@ static void pico_usbd_ep_xfer_abort(uint8_t dport, uint8_t epaddr) {
     }
     uint32_t buf_ctrl = USB_BUF_CTRL_SEL;
     if (epaddr & USB_EP_DIR_IN) {
+        if (USB_EP_NUM(epaddr) == 0) {
+            ep->pid_in = 1;
+        }
         buf_ctrl |= ((ep->pid_in  == 1) ? USB_BUF_CTRL_DATA1_PID : 0);
     } else {
         buf_ctrl |= ((ep->pid_out == 1) ? USB_BUF_CTRL_DATA1_PID : 0);

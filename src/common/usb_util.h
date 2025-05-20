@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 #include "usb_def.h"
 
 #ifdef __cplusplus
@@ -17,6 +18,7 @@ extern "C" {
 #define USB_EP_DIR(epaddr)          ((epaddr) & USB_EP_DIR_IN)
 #define USB_EPADDR_FROM_IDX(idx)    ((idx >> 1U) | ((idx & 1U) ? USB_EP_DIR_OUT : USB_EP_DIR_IN))
 #define USB_DESC_TYPE(wValue)       ((uint8_t)((wValue) >> 8U))
+#define USB_DESC_INDEX(wValue)      ((uint8_t)((wValue) & 0xFFU))
 
 #define __CAT(x,y)                  x ## y
 #define CAT(x,y)                    __CAT(x,y)
@@ -28,12 +30,21 @@ extern "C" {
         .wString = {__VA_ARGS__}                            \
     }
 
+#ifdef __cplusplus
+/* Creates usb_desc_string_t from string */
+#define USB_STRING_DESC(s) {                        \
+    .bLength = 2 + sizeof(u##s) - sizeof(char16_t), \
+    .bDescriptorType = USB_DTYPE_STRING,            \
+    .wString = {(const uint16_t&)(u##s)[0]}         \
+}
+#else
 /* Creates usb_desc_string_t from string */
 #define USB_STRING_DESC(s) {                \
         .bLength = sizeof(CAT(u,s)),        \
         .bDescriptorType = USB_DTYPE_STRING,\
         .wString = {CAT(u,s)}               \
     }
+#endif
 
 /**
  * @brief Get an interface's class descriptor from a configuration descriptor.
