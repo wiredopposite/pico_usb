@@ -1,6 +1,6 @@
 #pragma once
 
-#include "usbd.h"
+#include "usbd/usbd.h"
 #if USBD_DEVICES_MAX
 
 #include <stdint.h>
@@ -9,17 +9,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-// typedef enum {
-//     USBD_EVENT_RESET        = (1U << 0),
-//     USBD_EVENT_SOF          = (1U << 1),
-//     USBD_EVENT_SUSPEND      = (1U << 2),
-//     USBD_EVENT_RESUME       = (1U << 3),
-//     USBD_EVENT_WAKEUP       = (1U << 4),
-//     USBD_EVENT_EP_CMPLT     = (1U << 5),
-//     USBD_EVENT_SETUP        = (1U << 6),
-//     USBD_EVENT_ERROR        = (1U << 7),
-// } usbd_event_t;
 
 typedef bool (*dcd_init)(void);
 typedef void (*dcd_deinit)(void);

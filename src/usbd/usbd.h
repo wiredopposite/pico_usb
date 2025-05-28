@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <pico/unique_id.h>
-#include "usb_def.h"
+#include "common/usb_def.h"
 
 #ifdef __cplusplus
 extern "C" {

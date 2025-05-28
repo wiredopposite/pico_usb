@@ -12,9 +12,7 @@ add_library(pico_usb STATIC
 )
 
 target_include_directories(pico_usb PUBLIC
-    ${SRC_DIR}/common
-    ${SRC_DIR}/usbd
-    # ${SRC_DIR}/usbh
+    ${SRC_DIR}
 )
 
 target_link_libraries(pico_usb PUBLIC

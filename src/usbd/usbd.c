@@ -5,10 +5,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <pico/unique_id.h>
-#include "dcd/dcd.h"
-#include "usb_def.h"
-#include "usb_util.h"
-#include "usb_log.h"
+#include "usbd/dcd/dcd.h"
+#include "common/usb_def.h"
+#include "common/usb_util.h"
+#include "common/usb_log.h"
 
 #define VERIFY_HANDLE(handle, ret) \
     do { \

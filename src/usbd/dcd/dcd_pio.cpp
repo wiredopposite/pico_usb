@@ -1,4 +1,4 @@
-#include "usbd.h"
+#include "usbd/usbd.h"
 #if USBD_DEVICES_MAX
 
 #pragma GCC push_options
@@ -19,11 +19,11 @@
 #include "usb_rx.pio.h"
 #include "usb_tx.pio.h"
 
-#include "usb_def.h"
-#include "usb_util.h"
-#include "usb_log.h"
-#include "usbd.h"
-#include "dcd/dcd.h"
+#include "common/usb_def.h"
+#include "common/usb_util.h"
+#include "common/usb_log.h"
+#include "usbd/usbd.h"
+#include "usbd/dcd/dcd.h"
 
 #ifndef USB_PIO_LOG_ENABLE
 #define USB_PIO_LOG_ENABLE 0

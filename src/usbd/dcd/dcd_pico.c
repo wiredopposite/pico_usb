@@ -1,4 +1,4 @@
-#include "usbd.h"
+#include "usbd/usbd.h"
 #if USBD_DEVICES_MAX
 
 #pragma GCC push_options
@@ -13,11 +13,11 @@
 #include <hardware/regs/usb.h>
 #include <hardware/regs/resets.h>
 #include <hardware/resets.h>
-#include "usb_log.h"
-#include "usb_def.h"
-#include "usb_util.h"
-#include "usbd.h"
-#include "dcd/dcd.h"
+#include "common/usb_log.h"
+#include "common/usb_def.h"
+#include "common/usb_util.h"
+#include "usbd/usbd.h"
+#include "usbd/dcd/dcd.h"
 
 #if (USBD_ENDPOINTS_MAX > USB_NUM_ENDPOINTS)
 #error "Error: USBD_ENDPOINTS_MAX is greater than 16, not supported!"
