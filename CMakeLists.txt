@@ -9,7 +9,6 @@ add_library(pico_usb STATIC
     ${SRC_DIR}/usbd/usbd.c
     ${SRC_DIR}/usbd/dcd/dcd_pico.c
     ${SRC_DIR}/usbd/dcd/dcd_pio.cpp
-    # ${SRC_DIR}/common/pio/usb_crc.c
 )
 
 target_include_directories(pico_usb PUBLIC
@@ -32,6 +31,3 @@ target_link_libraries(pico_usb PUBLIC
 target_compile_options(pico_usb PRIVATE
     -O3
 )
-
-# pico_generate_pio_header(pico_usb ${SRC_DIR}/common/pio/usb_tx.pio)
-# pico_generate_pio_header(pico_usb ${SRC_DIR}/common/pio/usb_rx.pio)
