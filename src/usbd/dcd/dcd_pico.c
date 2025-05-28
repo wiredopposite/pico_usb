@@ -1,6 +1,9 @@
 #include "usbd.h"
 #if USBD_DEVICES_MAX
 
+#pragma GCC push_options
+#pragma GCC optimize("-O3")
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -39,13 +42,12 @@ typedef struct {
     bool     alloc;
     uint8_t  eptype;
     uint16_t epsize;
-    uint8_t  pid_in;
-    uint8_t  pid_out;
+    uint8_t  pid;
     uint32_t buffer_offset; 
     bool     is_setup;
 } hw_endpoint_t;
 
-static hw_endpoint_t hw_endpoint[USB_NUM_ENDPOINTS] = {0};
+static hw_endpoint_t hw_endpoint[USB_NUM_ENDPOINTS * 2] = {0};
 static uint32_t next_buffer_offset = 0;
 
 static inline hw_endpoint_t* HW_EP(uint8_t epaddr) {
@@ -53,7 +55,7 @@ static inline hw_endpoint_t* HW_EP(uint8_t epaddr) {
     if (epnum >= USB_NUM_ENDPOINTS) {
         return NULL;
     }
-    return &hw_endpoint[epnum];
+    return &hw_endpoint[epnum * 2 + (epaddr & USB_EP_DIR_IN ? 0U : 1U)];
 }
 
 static inline io_rw_32* EP_CTRL(uint8_t epaddr) {
@@ -94,14 +96,16 @@ static inline uint8_t* EP_BUF(uint8_t epaddr) {
 }
 
 static void rearm_ep_out(uint8_t epaddr) {
+    if (epaddr & USB_EP_DIR_IN) {
+        return;
+    }
     hw_endpoint_t* ep = HW_EP(epaddr);
     if (ep == NULL) {
         return;
     }
-    ep->pid_out ^= 1;
     uint32_t buf_ctrl = (ep->epsize | 
                         USB_BUF_CTRL_AVAIL |
-                        (ep->pid_out 
+                        (ep->pid 
                             ? USB_BUF_CTRL_DATA1_PID 
                             : USB_BUF_CTRL_DATA0_PID));
     *EP_BUF_CTRL(epaddr) = buf_ctrl;
@@ -145,28 +149,6 @@ static void pico_usbd_deinit(void) {
     next_buffer_offset = 0;
 }
 
-// static void pico_usbd_enable(bool enable) {
-//     // reset_block(RESETS_RESET_USBCTRL_BITS);
-//     // unreset_block_wait(RESETS_RESET_USBCTRL_BITS);
-//     // memset(usb_dpram, 0, sizeof(*usb_dpram));
-//     usb_hw->muxing =    USB_USB_MUXING_TO_PHY_BITS | 
-//                         USB_USB_MUXING_SOFTCON_BITS;
-//     usb_hw->pwr =       USB_USB_PWR_VBUS_DETECT_BITS | 
-//                         USB_USB_PWR_VBUS_DETECT_OVERRIDE_EN_BITS;
-//     usb_hw->sie_ctrl =  USB_SIE_CTRL_EP0_INT_1BUF_BITS;
-//     usb_hw->inte =      USB_INTE_BUS_RESET_BITS |
-//                         USB_INTE_SETUP_REQ_BITS | 
-//                         USB_INTE_BUFF_STATUS_BITS | 
-//                         USB_INTE_DEV_SUSPEND_BITS | 
-//                         USB_INTE_DEV_RESUME_FROM_HOST_BITS;
-//     if (enable) {    
-//         usb_hw->main_ctrl = USB_MAIN_CTRL_CONTROLLER_EN_BITS;
-//     } else {
-//         usb_hw->main_ctrl = 0;
-//     }
-//     usb_logv("USB %s\n", enable ? "enabled" : "disabled");
-// }
-
 static void pico_usbd_ep_set_stall(uint8_t dport, uint8_t epaddr, bool stall) {
     hw_endpoint_t *ep = HW_EP(epaddr);
     if (ep == NULL) {
@@ -187,11 +169,7 @@ static void pico_usbd_ep_set_stall(uint8_t dport, uint8_t epaddr, bool stall) {
             *EP_BUF_CTRL(epaddr) &= ~USB_BUF_CTRL_STALL;
         }
     }
-    if (epaddr & USB_EP_DIR_IN) {
-        ep->pid_in = 0;
-    } else {
-        ep->pid_out = 0;
-    }
+    ep->pid = 0;
     usb_logv("USB %s STALL EP: %02X\n", stall ? "set" : "clear", epaddr);
 }
 
@@ -235,9 +213,7 @@ static bool pico_usbd_ep_config(uint8_t dport, uint8_t epaddr, uint8_t eptype, u
                                     ((uint)ep->eptype << EP_CTRL_BUFFER_TYPE_LSB) | 
                                     offset);
         *EP_CTRL(epaddr) = ep_ctrl;
-
         if (USB_EP_DIR(epaddr) == USB_EP_DIR_OUT) {
-            ep->pid_out = 1;
             rearm_ep_out(epaddr);
         }
     }
@@ -261,7 +237,7 @@ static void pico_usbd_ep_deconfig(uint8_t dport, uint8_t epaddr) {
 
 static int32_t pico_usbd_ep_read_setup(uint8_t dport, uint8_t* buf) {
     int32_t ret = -1;
-    hw_endpoint_t* ep = HW_EP(0);
+    hw_endpoint_t* ep = HW_EP(0 | USB_EP_DIR_OUT);
     if (ep == NULL) {
         return ret;
     }
@@ -273,11 +249,16 @@ static int32_t pico_usbd_ep_read_setup(uint8_t dport, uint8_t* buf) {
         ep->is_setup = false;
         ret = sizeof(usb_dpram->setup_packet);
     }
-    rearm_ep_out(0);
+    ep->pid ^= 1;
+    rearm_ep_out(0 | USB_EP_DIR_OUT);
     return ret;
 }
 
 static int32_t pico_usbd_ep_read(uint8_t dport, uint8_t epaddr, uint8_t* buf, uint16_t blen) {
+    if (epaddr & USB_EP_DIR_IN) {
+        usb_loge("Error: EP %02X is OUT, cannot read from it\n", epaddr);
+        return -1;
+    }
     hw_endpoint_t* ep = HW_EP(epaddr);
     if (ep == NULL) {
         return -1;
@@ -289,11 +270,16 @@ static int32_t pico_usbd_ep_read(uint8_t dport, uint8_t epaddr, uint8_t* buf, ui
     for (uint16_t i = 0; i < len; i++) {
         buf[i] = ep_buf[i];
     }
+    ep->pid ^= 1;
     rearm_ep_out(epaddr);
     return blen;
 }
 
 static int32_t pico_usbd_ep_write(uint8_t dport, uint8_t epaddr, const uint8_t* buf, uint16_t blen) {
+    if (!(epaddr & USB_EP_DIR_IN)) {
+        usb_loge("Error: EP %02X is IN, cannot write to it\n", epaddr);
+        return -1;
+    }
     hw_endpoint_t* ep = HW_EP(epaddr);
     if (ep == NULL) {
         usb_loge("Error: EP %02X not configured\n", epaddr);
@@ -305,13 +291,13 @@ static int32_t pico_usbd_ep_write(uint8_t dport, uint8_t epaddr, const uint8_t* 
     for (uint16_t i = 0; i < blen; i++) {
         ep_buf[i] = buf[i];
     }
-    ep->pid_in ^= 1;
     *EP_BUF_CTRL(epaddr) =  (blen | 
                             USB_BUF_CTRL_AVAIL |
                             USB_BUF_CTRL_FULL  |
-                            ((ep->pid_in == 1)
+                            ((ep->pid == 1)
                                 ? USB_BUF_CTRL_DATA1_PID 
                                 : USB_BUF_CTRL_DATA0_PID));
+    ep->pid ^= 1;
     return blen;
 }
 
@@ -328,20 +314,17 @@ static void pico_usbd_ep_xfer_abort(uint8_t dport, uint8_t epaddr) {
             tight_loop_contents();
         }
     }
-    uint32_t buf_ctrl = USB_BUF_CTRL_SEL;
-    if (epaddr & USB_EP_DIR_IN) {
-        if (USB_EP_NUM(epaddr) == 0) {
-            ep->pid_in = 1;
-        }
-        buf_ctrl |= ((ep->pid_in  == 1) ? USB_BUF_CTRL_DATA1_PID : 0);
-    } else {
-        buf_ctrl |= ((ep->pid_out == 1) ? USB_BUF_CTRL_DATA1_PID : 0);
+    uint32_t buf_ctrl = USB_BUF_CTRL_SEL; // reset to buffer 0
+    if ((epaddr & USB_EP_DIR_IN) && (USB_EP_NUM(epaddr) == 0)) {
+        ep->pid = 1;
     }
+    buf_ctrl |= (ep->pid) ? USB_BUF_CTRL_DATA1_PID : 0;
     *EP_BUF_CTRL(epaddr) = buf_ctrl;
     if (rp2040_chip_version() >= 2) {
         usb_hw_clear->abort_done = abort;
         usb_hw_clear->abort = abort;
     }
+    printf("Aborted EP %02X transfer\n", epaddr);
 }
 
 static bool pico_usbd_ep_ready(uint8_t dport, uint8_t epaddr) {
@@ -374,15 +357,21 @@ static bool pico_usbd_task(uint8_t dport, uint32_t* event_mask, uint32_t* ep_mas
         if (usb_hw->sie_ctrl & USB_SIE_CTRL_PULLUP_EN_BITS) {
             rp2040_usb_device_enumeration_fix();
         }
-#endif 
+#endif
     }
     if (ints & USB_INTS_SETUP_REQ_BITS) {
         *event_mask |= USBD_EVENT_SETUP;
         usb_hw_clear->sie_status = USB_SIE_STATUS_SETUP_REC_BITS;
-        hw_endpoint_t* ep = HW_EP(0 | USB_EP_DIR_OUT);
-        ep->pid_in = 0;
-        ep->pid_out = 0;
-        ep->is_setup = true;
+        *EP_BUF_CTRL(0 | USB_EP_DIR_IN) = 0;
+        hw_endpoint_t* ep_out = HW_EP(0 | USB_EP_DIR_OUT);
+        hw_endpoint_t* ep_in = HW_EP(0 | USB_EP_DIR_IN);
+        ep_in->pid = 1;
+        ep_out->pid = 0;
+        if (!pico_usbd_ep_ready(dport, 0 | USB_EP_DIR_IN)) {
+            /* We have a stale IN xfer pending */
+            pico_usbd_ep_xfer_abort(dport, 0 | USB_EP_DIR_IN);
+        }
+        ep_out->is_setup = true;
     }
     if (ints & USB_INTS_BUFF_STATUS_BITS) {
         *event_mask |= USBD_EVENT_EP_CMPLT;
@@ -421,5 +410,7 @@ const dcd_driver_t DCD_DRIVER_PICO = {
     .get_frame = pico_usbd_get_frame,
     .task = pico_usbd_task,
 };
+
+#pragma GCC pop_options
 
 #endif /* USBD_DEVICES_MAX */

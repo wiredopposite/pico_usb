@@ -238,14 +238,14 @@ typedef struct __attribute__((packed, aligned(2))) {
 
 /* USB Interface Association descriptor */
 typedef struct __attribute__((packed)) {
-    uint8_t bLength;                /**<\brief Size of the descriptor, in bytes.*/
-    uint8_t bDescriptorType;        /**<\brief IAD descriptor */
-    uint8_t bFirstInterface;        /**<\brief Index of the first associated interface. */
-    uint8_t bInterfaceCount;        /**<\brief Total number of associated interfaces. */
-    uint8_t bFunctionClass;         /**<\brief Function class ID. */
-    uint8_t bFunctionSubClass;      /**<\brief Function subclass ID. */
-    uint8_t bFunctionProtocol;      /**<\brief Function protocol ID. */
-    uint8_t iFunction;              /**<\brief Index of the string descriptor describing the
+    uint8_t bLength;                /* Size of the descriptor, in bytes.*/
+    uint8_t bDescriptorType;        /* IAD descriptor */
+    uint8_t bFirstInterface;        /* Index of the first associated interface. */
+    uint8_t bInterfaceCount;        /* Total number of associated interfaces. */
+    uint8_t bFunctionClass;         /* Function class ID. */
+    uint8_t bFunctionSubClass;      /* Function subclass ID. */
+    uint8_t bFunctionProtocol;      /* Function protocol ID. */
+    uint8_t iFunction;              /* Index of the string descriptor describing the
                                      * interface association. */
 } usb_desc_iad_t;
 

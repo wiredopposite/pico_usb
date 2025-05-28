@@ -4,13 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-// #include <pico/unique_id.h>
+#include <pico/unique_id.h>
 #include "dcd/dcd.h"
 #include "usb_def.h"
 #include "usb_util.h"
 #include "usb_log.h"
-
-// #define USBD_SERIAL_BUF_SIZE (sizeof(usb_desc_string_t) + (PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4) + 4)
 
 #define VERIFY_HANDLE(handle, ret) \
     do { \
@@ -28,49 +26,6 @@
             return ret; \
         } \
     } while (0)
-
-// typedef enum usbd_state_ {
-//     USBD_STATE_DISABLED = 0,
-//     USBD_STATE_DEFAULT,
-//     USBD_STATE_ADDRESSED,
-//     USBD_STATE_CONFIGURED,
-// } usbd_state_t;
-
-// typedef enum ctrl_stage_ {
-//     USB_CTRL_STAGE_IDLE = 0,
-//     USB_CTRL_STAGE_DATA_OUT,
-//     USB_CTRL_STAGE_DATA_IN,
-//     USB_CTRL_STAGE_STATUS_IN,
-//     USB_CTRL_STAGE_STATUS_OUT,
-// } ctrl_stage_t;
-
-// typedef void (*usbd_endpoint_cb)(usbd_handle_t* handle, usbd_event_t event, uint8_t epaddr);
-
-// typedef struct ctrl_ep_ {
-//     ctrl_stage_t    stage;
-//     usbd_request_cb complete_cb;
-
-//     uint8_t     tx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
-//     uint16_t    tx_idx;
-//     uint16_t    tx_len;
-    
-//     uint8_t     rx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
-//     uint16_t    rx_idx;
-//     uint16_t    rx_len;
-// } ctrl_ep_t;
-
-// typedef struct usbd_handle {
-//     usbd_state_t        state;
-//     usbd_hw_type_t      hw_type;
-//     uint8_t             port;
-//     usbd_driver_t       app_driver;
-//     const dcd_driver_t* dcd_driver;
-//     uint8_t             config_num;
-//     usbd_endpoint_cb    endpoint_cb[USBD_ENDPOINTS_MAX];
-//     uint16_t            ctrl_ep_size;
-//     ctrl_ep_t           ctrl_ep;
-//     uint8_t             desc_serial_buf[USBD_SERIAL_BUF_SIZE] __attribute__((aligned(2)));
-// } usbd_handle_t;
 
 static usbd_handle_t handles[USBD_DEVICES_MAX] = {0};
 static const size_t usbd_handles_size = sizeof(handles);
@@ -242,6 +197,7 @@ static bool usbd_process_ctrl_req(usbd_handle_t* handle, usb_ctrl_req_t* req) {
 
 static void usbd_process_ctrl_eptx(usbd_handle_t* handle) {
     int32_t len = 0;
+    usb_ctrl_req_t* req = (usb_ctrl_req_t*)handle->ctrl_ep.rx_buf;
     switch (handle->ctrl_ep.stage) {
     case USB_CTRL_STAGE_DATA_IN:
         /* dcd_ep_write is gated to configured EP size */
@@ -259,16 +215,16 @@ static void usbd_process_ctrl_eptx(usbd_handle_t* handle) {
             usb_logd("Ctrl TX: %d/%d\n", handle->ctrl_ep.tx_idx, handle->ctrl_ep.tx_len);
             break;
         }
-        if (len != handle->ctrl_ep_size) {
+        if ((len != handle->ctrl_ep_size) || 
+            (handle->ctrl_ep.tx_len == req->wLength)) {
             /*  We can move to STATUS_OUT stage, 
-                otherwise stay in DATA_IN and send a ZLP next */
+                otherwise we'd stay in DATA_IN and send a ZLP next */
             handle->ctrl_ep.stage = USB_CTRL_STAGE_STATUS_OUT;
         }
         break;
     case USB_CTRL_STAGE_STATUS_IN:
         handle->ctrl_ep.stage = USB_CTRL_STAGE_IDLE;
         if (handle->ctrl_ep.complete_cb != NULL) {
-            usb_ctrl_req_t* req = (usb_ctrl_req_t*)handle->ctrl_ep.rx_buf;
             handle->ctrl_ep.complete_cb(handle, req);
             handle->ctrl_ep.complete_cb = NULL;
         }
@@ -356,7 +312,9 @@ static void usbd_process_ctrl_eprx(usbd_handle_t* handle) {
                 handle->port);
             handle->ctrl_ep.stage = USB_CTRL_STAGE_IDLE;
             handle->ctrl_ep.complete_cb = NULL;
-            handle->dcd_driver->ep_xfer_abort(handle->port, (0 | USB_EP_DIR_IN));
+            if (!handle->dcd_driver->ep_ready(handle->port, (0 | USB_EP_DIR_IN))) {
+                handle->dcd_driver->ep_xfer_abort(handle->port, (0 | USB_EP_DIR_IN));
+            }
         } else {
             usbd_stall_ctrl_ep(handle);
             usb_loge("Error: Ctrl RX, unexpected packet, len: %d, port: %d\n", 

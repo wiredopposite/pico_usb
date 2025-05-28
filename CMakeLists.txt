@@ -22,11 +22,11 @@ target_link_libraries(pico_usb PUBLIC
     pico_stdlib
     pico_sync
     pico_unique_id
+	hardware_structs
+	hardware_irq
+	hardware_resets
+	pico_platform
     pico_pio_usb
-    # hardware_pio
-    # hardware_dma
-    # hardware_irq
-    # hardware_resets
 )
 
 target_compile_options(pico_usb PRIVATE

@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-// CDC Subclass Codes
+/* CDC Subclass Codes */
 
 #define USB_SUBCLASS_CDC_DIRECT_LINE_CONTROL        0x01 /* Direct Line Control Model           [USBPSTN1.2] */
 #define USB_SUBCLASS_CDC_ABSTRACT_CONTROL           0x02 /* Abstract Control Model              [USBPSTN1.2] */
@@ -22,7 +22,7 @@ extern "C" {
 #define USB_SUBCLASS_CDC_ETHERNET_EMULATION         0x0C /* Ethernet Emulation Model            [USBEEM1.0] */
 #define USB_SUBCLASS_CDC_NETWORK_CONTROL            0x0D /* Network Control Model               [USBNCM1.0] */
 
-// CDC Protocols
+/* CDC Protocols */
 
 #define USB_PROTOCOL_CDC_NONE                           0x00 /* No specific protocol                        */
 #define USB_PROTOCOL_CDC_ATCOMMAND                      0x01 /* AT Commands: V.250 etc                      */
@@ -33,22 +33,22 @@ extern "C" {
 #define USB_PROTOCOL_CDC_ATCOMMAND_CDMA                 0x06 /* AT Commands defined by TIA for CDMA         */
 #define USB_PROTOCOL_CDC_ETHERNET_EMULATION             0x07 /* Ethernet Emulation Model                    */
 
-// CDC Descriptor Types
+/* CDC Descriptor Types */
 
-#define USB_DTYPE_CS_INTERFACE           0x24    // Class-specific interface descriptor type
-#define USB_DTYPE_CS_ENDPOINT            0x25    // Class-specific endpoint descriptor type
+#define USB_DTYPE_CS_INTERFACE           0x24    /* Class-specific interface descriptor type */
+#define USB_DTYPE_CS_ENDPOINT            0x25    /* Class-specific endpoint descriptor type */
 
-// CDC Functional Descriptor Subtypes
+/* CDC Functional Descriptor Subtypes */
 
-#define USB_DTYPE_CDC_HEADER           0x00    // Header functional descriptor
-#define USB_DTYPE_CDC_CALL_MGMT        0x01    // Call Management functional descriptor
-#define USB_DTYPE_CDC_ACM              0x02    // Abstract Control Management
-#define USB_DTYPE_CDC_UNION            0x06    // Union functional descriptor
+#define USB_DTYPE_CDC_HEADER           0x00    /* Header functional descriptor */
+#define USB_DTYPE_CDC_CALL_MGMT        0x01    /* Call Management functional descriptor */
+#define USB_DTYPE_CDC_ACM              0x02    /* Abstract Control Management */
+#define USB_DTYPE_CDC_UNION            0x06    /* Union functional descriptor */
 
-// CDC Class-Specific Requests
+/* CDC Class-Specific Requests */
 
-#define USB_REQ_CDC_SEND_ENCAPSULATED_COMMAND                     0x00 ///< is used to issue a command in the format of the supported control protocol of the Communications Class interface
-#define USB_REQ_CDC_GET_ENCAPSULATED_RESPONSE                     0x01 ///< is used to request a response in the format of the supported control protocol of the Communications Class interface.
+#define USB_REQ_CDC_SEND_ENCAPSULATED_COMMAND                     0x00 
+#define USB_REQ_CDC_GET_ENCAPSULATED_RESPONSE                     0x01 
 #define USB_REQ_CDC_SET_COMM_FEATURE                              0x02
 #define USB_REQ_CDC_GET_COMM_FEATURE                              0x03
 #define USB_REQ_CDC_CLEAR_COMM_FEATURE                            0x04
@@ -90,7 +90,7 @@ extern "C" {
 
 #define USB_REQ_CDC_MDLM_SEMANTIC_MODEL                           0x60
 
-// CDC Notifications
+/* CDC Notifications */
 
 #define USB_NOTIF_CDC_NETWORK_CONNECTION                0x00
 #define USB_NOTIF_CDC_RESPONSE_AVAILABLE                0x01
@@ -102,60 +102,72 @@ extern "C" {
 #define USB_NOTIF_CDC_CONNECTION_SPEED_CHANGE           0x2A
 #define USB_NOTIF_CDC_MDLM_SEMANTIC_MODEL_NOTIFICATION  0x40
 
-// Control Line State bits
+/* Control Line State bits */
 
-#define USB_CDC_CONTROL_LINE_DTR     0x01    // DTR signal
-#define USB_CDC_CONTROL_LINE_RTS     0x02    // RTS signal
+#define USB_CDC_CONTROL_LINE_DTR     0x01    /* DTR signal */
+#define USB_CDC_CONTROL_LINE_RTS     0x02    /* RTS signal */
 
 /* Line coding structure */
 
-#define USB_CDC_1_STOP_BITS             0x00    /**<\brief 1 stop bit.*/
-#define USB_CDC_1_5_STOP_BITS           0x01    /**<\brief 1.5 stop bits.*/
-#define USB_CDC_2_STOP_BITS             0x02    /**<\brief 2 stop bits.*/
-#define USB_CDC_NO_PARITY               0x00    /**<\brief NO parity bit.*/
-#define USB_CDC_ODD_PARITY              0x01    /**<\brief ODD parity bit.*/
-#define USB_CDC_EVEN_PARITY             0x02    /**<\brief EVEN parity bit.*/
-#define USB_CDC_MARK_PARITY             0x03    /**<\brief patity is MARK.*/
-#define USB_CDC_SPACE_PARITY            0x04    /**<\brief patity is SPACE.*/
+#define USB_CDC_1_STOP_BITS             0x00    /* 1 stop bit.*/
+#define USB_CDC_1_5_STOP_BITS           0x01    /* 1.5 stop bits.*/
+#define USB_CDC_2_STOP_BITS             0x02    /* 2 stop bits.*/
+#define USB_CDC_NO_PARITY               0x00    /* NO parity bit.*/
+#define USB_CDC_ODD_PARITY              0x01    /* ODD parity bit.*/
+#define USB_CDC_EVEN_PARITY             0x02    /* EVEN parity bit.*/
+#define USB_CDC_MARK_PARITY             0x03    /* patity is MARK.*/
+#define USB_CDC_SPACE_PARITY            0x04    /* patity is SPACE.*/
+
+/* ACM Functional Descriptor bmCapabilities bits */
+
+#define USB_CDC_ACM_CAP_COMM_FEATURES    0x01  /* Supports CommFeature requests */
+#define USB_CDC_ACM_CAP_LINE_CODING      0x02  /* Supports LineCoding/ControlState */
+#define USB_CDC_ACM_CAP_SEND_BREAK       0x04  /* Supports SendBreak */
+#define USB_CDC_ACM_CAP_NETWORK_CONN     0x08  /* Supports NetworkConnection notification */
+
+/* Call Management Functional Descriptor bmCapabilities bits */
+
+#define USB_CDC_CALL_MGMT_CAP_CALL_MGMT  0x01  /* Device handles call management itself */
+#define USB_CDC_CALL_MGMT_CAP_DATA_ITF   0x02  /* Device can send/receive call management over Data interface */
 
 typedef struct __attribute__((packed)) {
-    uint32_t dwDTERate;          // Data terminal rate in bits per second
-    uint8_t  bCharFormat;        // Stop bits: 0=1 bit, 1=1.5 bits, 2=2 bits
-    uint8_t  bParityType;        // Parity: 0=None, 1=Odd, 2=Even, 3=Mark, 4=Space
-    uint8_t  bDataBits;          // Data bits (5, 6, 7, 8, or 16)
+    uint32_t dwDTERate;          /* Data terminal rate in bits per second */
+    uint8_t  bCharFormat;        /* Stop bits: 0=1 bit, 1=1.5 bits, 2=2 bits */
+    uint8_t  bParityType;        /* Parity: 0=None, 1=Odd, 2=Even, 3=Mark, 4=Space */
+    uint8_t  bDataBits;          /* Data bits (5, 6, 7, 8, or 16) */
 } usb_cdc_line_coding_t;
 
 typedef struct __attribute__((packed)) {
-    uint8_t     bFunctionLength;    /**<\brief Size of this functional descriptor, in bytes.*/
-    uint8_t     bDescriptorType;    /**<\brief CS_INTERFACE descriptor type.*/
-    uint8_t     bDescriptorSubType; /**<\brief Call Management functional descriptor subtype.*/
-    uint8_t     bmCapabilities;     /**<\brief The call management capabilities that this
+    uint8_t     bFunctionLength;    /* Size of this functional descriptor, in bytes.*/
+    uint8_t     bDescriptorType;    /* CS_INTERFACE descriptor type.*/
+    uint8_t     bDescriptorSubType; /* Call Management functional descriptor subtype.*/
+    uint8_t     bmCapabilities;     /* The call management capabilities that this
                                      * configuration supports.*/
-    uint8_t     bDataInterface;     /**<\brief Interface number of Data Class interface optionally
+    uint8_t     bDataInterface;     /* Interface number of Data Class interface optionally
                                      * used for call management.*/
 } usb_cdc_desc_call_mgmt_t;
 
 typedef struct __attribute__((packed)) {
-    uint8_t     bFunctionLength;    /**<\brief Size of this descriptor in bytes.*/
-    uint8_t     bDescriptorType;    /**<\brief CS_INTERFACE descriptor type.*/
-    uint8_t     bDescriptorSubType; /**<\brief Header functional descriptor subtype.*/
-    uint16_t    bcdCDC;             /**<\brief USB CDC Specification release number in BCD.*/
+    uint8_t     bFunctionLength;    /* Size of this descriptor in bytes.*/
+    uint8_t     bDescriptorType;    /* CS_INTERFACE descriptor type.*/
+    uint8_t     bDescriptorSubType; /* Header functional descriptor subtype.*/
+    uint16_t    bcdCDC;             /* USB CDC Specification release number in BCD.*/
 } usb_cdc_desc_header_t;
 
 typedef struct __attribute__((packed)) {
-    uint8_t     bFunctionLength;    /**<\brief Size of this functional descriptor, in bytes.*/
-    uint8_t     bDescriptorType;    /**<\brief CS_INTERFACE descriptor type.*/
-    uint8_t     bDescriptorSubType; /**<\brief Abstract Control Management functional descriptor subtype.*/
-    uint8_t     bmCapabilities;     /**<\brief The capabilities that this configuration supports.*/
+    uint8_t     bFunctionLength;    /* Size of this functional descriptor, in bytes.*/
+    uint8_t     bDescriptorType;    /* CS_INTERFACE descriptor type.*/
+    uint8_t     bDescriptorSubType; /* Abstract Control Management functional descriptor subtype.*/
+    uint8_t     bmCapabilities;     /* The capabilities that this configuration supports.*/
 } usb_cdc_desc_acm_t;
 
 typedef struct __attribute__((packed)) {
-    uint8_t     bFunctionLength;    /**<\brief Size of this functional descriptor, in bytes.*/
-    uint8_t     bDescriptorType;    /**<\brief CS_INTERFACE descriptor type.*/
-    uint8_t     bDescriptorSubType; /**<\brief Union Functional Descriptor.*/
-    uint8_t     bMasterInterface0;  /**<\brief The interface number of the CDC interface designated
+    uint8_t     bFunctionLength;    /* Size of this functional descriptor, in bytes.*/
+    uint8_t     bDescriptorType;    /* CS_INTERFACE descriptor type.*/
+    uint8_t     bDescriptorSubType; /* Union Functional Descriptor.*/
+    uint8_t     bMasterInterface0;  /* The interface number of the CDC interface designated
                                      * as the master or controlling interface for the union.*/
-    uint8_t     bSlaveInterface0;   /**<\brief Interface number of first slave or associated interface
+    uint8_t     bSlaveInterface0;   /* Interface number of first slave or associated interface
                                      * in the union.*/
     /* ... and there could be other slave interfaces */
 } usb_cdc_desc_union_t;
