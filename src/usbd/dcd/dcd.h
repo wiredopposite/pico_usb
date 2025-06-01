@@ -12,7 +12,7 @@ extern "C" {
 
 typedef bool (*dcd_init)(void);
 typedef void (*dcd_deinit)(void);
-typedef void (*dcd_connect)(bool connect);
+typedef void (*dcd_connect)(void);
 typedef bool (*dcd_ep_open)(uint8_t dport, uint8_t epaddr, uint8_t epattr, uint16_t epsize);
 typedef void (*dcd_ep_close)(uint8_t dport, uint8_t epaddr);
 typedef void (*dcd_set_address)(uint8_t dport, uint8_t daddr);

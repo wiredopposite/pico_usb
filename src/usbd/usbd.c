@@ -102,7 +102,6 @@ static bool usbd_process_set_config_req(usbd_handle_t* handle, uint8_t config) {
         return false;
     }
     handle->config_num = config;
-    // handle->state = USBD_STATE_CONFIGURED;
     handle->ctrl_ep.complete_cb = usbd_config_complete_cb;
     return true;
 }
@@ -329,7 +328,7 @@ static void usbd_process_ctrl_eprx(usbd_handle_t* handle) {
         handle->ctrl_ep.stage = USB_CTRL_STAGE_DATA_IN;
     }
     /*  usbd_process_ctrl_req will call the app's ctrl_xfer_cb or get_desc_cb,
-        if DATA_IN, a response should be queued using usbd_send_ctrl_resp */
+        if DATA_IN stage, a response should be queued using usbd_send_ctrl_resp */
     if (usbd_process_ctrl_req(handle, req)) {
         if (handle->ctrl_ep.stage == USB_CTRL_STAGE_DATA_IN) {
             if ((handle->ctrl_ep.tx_len == 0) && (req->wLength > 0)) {
@@ -466,28 +465,19 @@ usbd_handle_t* usbd_init(usbd_hw_type_t hw_type, const usbd_driver_t *driver, ui
     return handle;
 }
 
-void usbd_deint(usbd_handle_t* handle) {
-    VERIFY_HANDLE(handle, );
-    if (handle->hw_type == USBD_HW_USB) {
-        handle->dcd_driver->connect(false);
+void usbd_deinit(usbd_hw_type_t hw_type) {
+    VERIFY_COND((uint8_t)hw_type <= USBD_HW_PIO, );
+    for (uint8_t i = 0; i < USBD_DEVICES_MAX; i++) {
+        usbd_handle_t* handle = &handles[i];
+        if ((handle->state == USBD_STATE_DISABLED) || 
+            (handle->hw_type != hw_type)) {
+            continue;
+        }
+        usb_logi("Deinit USBD Port %d\n", handle->port);
+        handle->app_driver.deinit_cb(handle);
         handle->dcd_driver->deinit();
-    } else if (handle->hw_type == USBD_HW_PIO) {
-        bool remaining = false;
-        for (uint8_t i = 0; i < USBD_DEVICES_MAX; i++) {
-            if ((handle->port != i) && 
-                (handles[i].state != USBD_STATE_DISABLED) && 
-                (handles[i].hw_type == USBD_HW_PIO)) {
-                remaining = true;
-                break;
-            }
-        }
-        if (!remaining) {
-            handle->dcd_driver->connect(false);
-            handle->dcd_driver->deinit();
-        }
+        memset(handle, 0, sizeof(usbd_handle_t));
     }
-    handle->app_driver.deinit_cb(handle);
-    handle->state = USBD_STATE_DISABLED;
 }
 
 void usbd_task(void) {
@@ -534,9 +524,13 @@ void usbd_task(void) {
     }
 }
 
-void usbd_set_connected(usbd_handle_t* handle, bool connect) {
-    VERIFY_HANDLE(handle, );
-    handle->dcd_driver->connect(connect);
+void usbd_connect(usbd_hw_type_t hw_type) {
+    VERIFY_COND((uint8_t)hw_type <= USBD_HW_PIO, );
+    if (hw_type == USBD_HW_USB) {
+        DCD_DRIVER_PICO.connect();
+    } else if (hw_type == USBD_HW_PIO) {
+        DCD_DRIVER_PIO.connect();
+    }
 }
 
 void usbd_reset_device(usbd_handle_t* handle) {

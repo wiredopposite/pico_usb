@@ -13,6 +13,7 @@
 #include <hardware/regs/usb.h>
 #include <hardware/regs/resets.h>
 #include <hardware/resets.h>
+
 #include "common/usb_log.h"
 #include "common/usb_def.h"
 #include "common/usb_util.h"
@@ -130,23 +131,19 @@ static bool pico_usbd_init(void) {
     return true;
 }
 
-static void pico_usbd_connect(bool connect) {
-    if (connect) {
-        usb_hw->main_ctrl = USB_MAIN_CTRL_CONTROLLER_EN_BITS;
-        usb_hw_set->sie_ctrl = USB_SIE_CTRL_PULLUP_EN_BITS;
-    } else {
-        usb_hw_clear->sie_ctrl = USB_SIE_CTRL_PULLUP_EN_BITS;
-        usb_hw->main_ctrl = USB_MAIN_CTRL_CONTROLLER_EN_BITS;
-    }
-}
-
 static void pico_usbd_deinit(void) {
-    pico_usbd_connect(false);
+    usb_hw_clear->sie_ctrl = USB_SIE_CTRL_PULLUP_EN_BITS;
+    usb_hw->main_ctrl = USB_MAIN_CTRL_CONTROLLER_EN_BITS;
     reset_block(RESETS_RESET_USBCTRL_BITS);
     unreset_block_wait(RESETS_RESET_USBCTRL_BITS);
     memset(usb_dpram, 0, sizeof(*usb_dpram));
     memset(hw_endpoint, 0, sizeof(hw_endpoint));
     next_buffer_offset = 0;
+}
+
+static void pico_usbd_connect(void) {
+    usb_hw->main_ctrl = USB_MAIN_CTRL_CONTROLLER_EN_BITS;
+    usb_hw_set->sie_ctrl = USB_SIE_CTRL_PULLUP_EN_BITS;
 }
 
 static void pico_usbd_ep_set_stall(uint8_t dport, uint8_t epaddr, bool stall) {

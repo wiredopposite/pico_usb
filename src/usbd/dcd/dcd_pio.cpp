@@ -778,29 +778,51 @@ static bool pio_usbd_init(void) {
     return true;
 }
 
-static void pio_usbd_connect(bool connect) {
-    // if (connect && !usbd_rhport.connected) {
-    //     gpio_disable_pulls(usbd_rhport.pin_dp);
-    //     gpio_disable_pulls(usbd_rhport.pin_dm);
-    //     gpio_deinit(usbd_rhport.pin_dp);
-    //     gpio_deinit(usbd_rhport.pin_dm);
-    //     init_dma(&usbd_rhport);
-    //     init_pio(&usbd_rhport);
-    //     enable_pio(&usbd_rhport);
-    //     usbd_rhport.connected = true;
-    // } else if (!connect) {
-    //     if (usbd_rhport.connected) {
-    //         usbd_rhport.connected = false;
-    //         deinit_dma(&usbd_rhport);
-    //         deinit_pio(&usbd_rhport);
-    //     }
-    //     gpio_init(usbd_rhport.pin_dp);
-    //     gpio_init(usbd_rhport.pin_dm);
-    //     gpio_set_dir(usbd_rhport.pin_dp, GPIO_IN);
-    //     gpio_set_dir(usbd_rhport.pin_dm, GPIO_IN);
-    //     gpio_pull_down(usbd_rhport.pin_dp);
-    //     gpio_pull_down(usbd_rhport.pin_dm);
-    // }
+static void pio_usbd_deinit(void) {
+    if (!usbd_rhport.connected) {
+        return;
+    }
+    usbd_rhport.connected = false;
+    irq_set_enabled(usbd_rhport.rx_irq_num, false);
+    dma_channel_abort(usbd_rhport.dma_chan_tx);
+    dma_channel_unclaim(usbd_rhport.dma_chan_tx);
+    pio_sm_set_enabled(usbd_rhport.pio_tx, usbd_rhport.sm_tx, false);
+    pio_sm_set_enabled(usbd_rhport.pio_rx, usbd_rhport.sm_rx, false);
+    pio_sm_set_enabled(usbd_rhport.pio_rx, usbd_rhport.sm_eop, false);
+    pio_sm_clear_fifos(usbd_rhport.pio_tx, usbd_rhport.sm_tx);
+    pio_sm_clear_fifos(usbd_rhport.pio_rx, usbd_rhport.sm_rx);
+    pio_sm_clear_fifos(usbd_rhport.pio_rx, usbd_rhport.sm_eop);
+    pio_remove_program(usbd_rhport.pio_tx, usbd_rhport.fs_tx_program, usbd_rhport.offset_tx);
+    pio_remove_program(usbd_rhport.pio_rx, &usb_nrzi_decoder_program, usbd_rhport.offset_rx);
+    pio_remove_program(usbd_rhport.pio_rx, &usb_edge_detector_program, usbd_rhport.offset_eop);
+    pio_sm_unclaim(usbd_rhport.pio_tx, usbd_rhport.sm_tx);
+    pio_sm_unclaim(usbd_rhport.pio_rx, usbd_rhport.sm_rx);
+    pio_sm_unclaim(usbd_rhport.pio_rx, usbd_rhport.sm_eop);
+}
+
+static void pio_usbd_connect(void) {
+    if (usbd_rhport.connected) {
+        return;
+    }
+    // usbd_rhport_t* rhport = &usbd_rhport;
+    // rhport->connected = true;
+    // pio_sm_set_enabled(rhport->pio_tx, rhport->sm_tx, true);
+    // usbd_bus_prepare_receive(rhport);
+    // rhport->pio_rx->ctrl |= (1 << rhport->sm_rx);
+    // rhport->pio_rx->irq |= PIO_USB_IRQ_RX_Msk;
+
+    // // enable the two PIO SMs that run USB RX
+    // // pio_sm_set_enabled(rhport->pio_rx,  rhport->sm_rx,  true);
+    // pio_sm_set_enabled(rhport->pio_rx,  rhport->sm_eop, true);
+
+    // pio_set_irqn_source_enabled(
+    //     rhport->pio_rx, 
+    //     0, 
+    //     (pio_interrupt_source)(pis_interrupt0 + IRQ_RX_START),
+    //     true
+    // );
+    // irq_set_exclusive_handler(rhport->rx_irq_num, usbd_packet_handler);
+    // irq_set_enabled(rhport->rx_irq_num, true);
 }
 
 static bool pio_usbd_ep_open(uint8_t dport, uint8_t epaddr, 
@@ -832,9 +854,13 @@ static void pio_usbd_ep_close(uint8_t dport, uint8_t epaddr) {
 }
 
 static void pio_usbd_set_address(uint8_t dport, uint8_t daddr) {
-    (void)dport;
-    (void)daddr;
-    /* Handled internally */
+    if (dport >= USBD_DEVICES_MAX) {
+        pusb_loge("E: Set address: invalid port %d\n", dport);
+        return;
+    }
+    usbd_device* device = &usbd_rhport.dev[dport];
+    device->daddr_pending = 0;
+    device->daddr = daddr;
 }
 
 static void pio_usbd_ep_xfer_abort(uint8_t dport, uint8_t epaddr) {
@@ -986,6 +1012,7 @@ static bool pio_usbd_task(uint8_t dport, uint32_t* event_mask, uint32_t* ep_mask
 
 const dcd_driver_t DCD_DRIVER_PIO = {
     .init = pio_usbd_init,
+    .deinit = pio_usbd_deinit, // No deinit function
     .connect = pio_usbd_connect,
     .set_address = pio_usbd_set_address,
     .ep_open = pio_usbd_ep_open,

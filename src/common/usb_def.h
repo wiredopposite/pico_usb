@@ -41,6 +41,7 @@ extern "C" {
 
 #define USB_PROTOCOL_NONE       0x00    /* No protocol. */
 #define USB_PROTOCOL_IAD        0x01    /* Protocol defined by interface */
+#define USB_PROTOCOL_BULK_ONLY  0x50    /* Bulk-only transport protocol. */
 #define USB_PROTOCOL_VENDOR     0xFF    /* Vendor protocol. */
 
 /* USB BCD Version */

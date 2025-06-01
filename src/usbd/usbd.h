@@ -62,9 +62,6 @@ typedef struct usbd_handle_ usbd_handle_t;
 typedef void (*usbd_endpoint_cb)(usbd_handle_t* handle, usbd_event_t event, uint8_t epaddr);
 typedef void (*usbd_request_cb)(usbd_handle_t* handle, usb_ctrl_req_t* req);
 
-// typedef struct usbd_handle usbd_handle_t;
-// typedef void (*usbd_request_cb)(usbd_handle_t* handle, usb_ctrl_req_t* req);
-
 /* ---- Application callbacks ---- */
 
 /**
@@ -217,6 +214,13 @@ typedef struct usbd_handle_ {
 usbd_handle_t* usbd_init(usbd_hw_type_t hw_type, const usbd_driver_t *driver, uint8_t ep0_size);
 
 /**
+ * @brief Connect the specified USB hardware.
+ * 
+ * @param hw_type Type of USB hardware to connect (USB or PIO).
+ */
+void usbd_connect(usbd_hw_type_t hw_type);
+
+/**
  * @brief Process USB events.
  *
  * Function should be called in application's
@@ -225,12 +229,14 @@ usbd_handle_t* usbd_init(usbd_hw_type_t hw_type, const usbd_driver_t *driver, ui
 void usbd_task(void);
 
 /**
- * @brief Connect or disconnect the USB device.
+ * @brief Deinitialize the USB hardware.
+ *
+ * Function will close all endpoints and free all handles
+ * for the specified USB hardware type.
  * 
- * @param handle Pointer to the USB handle structure.
- * @param connect true to connect the device, false to disconnect it.
+ * @param hw_type Type of USB hardware to deinitialize (USB or PIO).
  */
-void usbd_set_connected(usbd_handle_t* handle, bool connect);
+void usbd_deinit(usbd_hw_type_t hw_type);
 
 /**
  * @brief Open a USB endpoint.
