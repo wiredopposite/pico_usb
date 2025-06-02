@@ -55,9 +55,9 @@ typedef enum {
     USBD_EVENT_ERROR    = (1U << 7),
 } usbd_event_t;
 
-typedef struct ctrl_ep_     ctrl_ep_t;
-typedef struct dcd_driver_  dcd_driver_t;
-typedef struct usbd_handle_ usbd_handle_t;
+typedef struct usbd_ctrl_ep_    usbd_ctrl_ep_t;
+typedef struct dcd_driver_      dcd_driver_t;
+typedef struct usbd_handle_     usbd_handle_t;
 
 typedef void (*usbd_endpoint_cb)(usbd_handle_t* handle, usbd_event_t event, uint8_t epaddr);
 typedef void (*usbd_request_cb)(usbd_handle_t* handle, usb_ctrl_req_t* req);
@@ -164,7 +164,7 @@ typedef enum {
     USBD_HW_PIO,     /* Emulated USB via PIO. */
 } usbd_hw_type_t;
 
-typedef struct ctrl_ep_ {
+typedef struct usbd_ctrl_ep_ {
     ctrl_stage_t    stage;
     usbd_request_cb complete_cb;
 
@@ -175,21 +175,20 @@ typedef struct ctrl_ep_ {
     uint8_t     rx_buf[USBD_ENUMERATION_SIZE] __attribute__((aligned(4)));
     uint16_t    rx_idx;
     uint16_t    rx_len;
-} ctrl_ep_t;
+} usbd_ctrl_ep_t;
 
 typedef struct usbd_handle_ {
     uint8_t             port;
-
     usbd_state_t        state;
     usbd_hw_type_t      hw_type;
+    uint8_t             config_num;
     
     usbd_driver_t       app_driver;
     const dcd_driver_t* dcd_driver;
 
-    uint8_t             config_num;
-    usbd_endpoint_cb    endpoint_cb[USBD_ENDPOINTS_MAX];
     uint16_t            ctrl_ep_size;
-    ctrl_ep_t           ctrl_ep;
+    usbd_ctrl_ep_t      ctrl_ep;
+    usbd_endpoint_cb    endpoint_cb[USBD_ENDPOINTS_MAX];
     
     uint8_t             desc_serial_buf[USBD_SERIAL_BUF_SIZE] __attribute__((aligned(2)));
 } usbd_handle_t;
