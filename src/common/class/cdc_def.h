@@ -35,8 +35,9 @@ extern "C" {
 
 /* CDC Descriptor Types */
 
-#define USB_DTYPE_CS_INTERFACE           0x24    /* Class-specific interface descriptor type */
-#define USB_DTYPE_CS_ENDPOINT            0x25    /* Class-specific endpoint descriptor type */
+#define USB_DTYPE_CS_INTERFACE          0x24    /* Class-specific interface descriptor type */
+#define USB_DTYPE_CS_ENDPOINT           0x25    /* Class-specific endpoint descriptor type */
+#define USB_DTYPE_CDC_ETHERNET          0x0F    /* CDC Ethernet functional descriptor type */
 
 /* CDC Functional Descriptor Subtypes */
 
@@ -171,6 +172,17 @@ typedef struct __attribute__((packed)) {
                                      * in the union.*/
     /* ... and there could be other slave interfaces */
 } usb_cdc_desc_union_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t  bFunctionLength;        /* Size of this descriptor in bytes */
+    uint8_t  bDescriptorType;        /* CS_INTERFACE (0x24) */
+    uint8_t  bDescriptorSubType;     /* CDC_ETHERNET (0x0F) */
+    uint8_t  iMACAddress;            /* Index of string descriptor with MAC address */
+    uint32_t bmEthernetStatistics;   /* Supported statistics (bitmap, usually 0) */
+    uint16_t wMaxSegmentSize;        /* Maximum segment size (Ethernet MTU) */
+    uint16_t wNumberMCFilters;       /* Number of multicast filters (usually 0) */
+    uint8_t  bNumberPowerFilters;    /* Number of wakeup power filters (usually 0) */
+} usb_cdc_desc_ecm_func_t;
 
 #ifdef __cplusplus
 }

@@ -27,6 +27,7 @@ extern "C" {
 #define USB_CLASS_TYPE_C_BRIDGE         0x12    /* Type-C bridge class code. */
 #define USB_CLASS_DIAGNOSTIC            0xDC    /* Diagnostic device class code. */
 #define USB_CLASS_WIRELESS_CONTROLLER   0xE0    /* Wireless controller class code. */
+#define USB_CLASS_RNDIS                 USB_CLASS_WIRELESS_CONTROLLER 
 #define USB_CLASS_MISC                  0xEF    /* Miscellaneous class code. */
 #define USB_CLASS_APPLICATION_SPECIFIC  0xFE    /* Application specific class code. */
 #define USB_CLASS_VENDOR                0xFF    /* Vendor specific class code. */

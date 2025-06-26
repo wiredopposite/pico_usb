@@ -69,13 +69,13 @@ static void usbd_ep_complete_cb(usbd_handle_t* handle, usbd_event_t event, uint8
     handle->app_driver.ep_xfer_cb(handle, epaddr);
 }
 
-static void usbd_set_address_cb(usbd_handle_t* handle, usb_ctrl_req_t* req) {
+static void usbd_set_address_cb(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     handle->dcd_driver->set_address(handle->port, req->wValue);
     handle->state = (req->wValue) ? USBD_STATE_ADDRESSED : USBD_STATE_DEFAULT;
     usb_logd("Set daddr: %d, port: %d\n", req->wValue, handle->port);
 }
 
-static void usbd_config_complete_cb(usbd_handle_t* handle, usb_ctrl_req_t* req) {
+static void usbd_config_complete_cb(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     handle->state = USBD_STATE_CONFIGURED;
     handle->app_driver.configured_cb(handle, handle->config_num);
 }
@@ -661,6 +661,24 @@ bool usbd_configure_all_eps(usbd_handle_t* handle, const void* desc_config) {
 const usb_desc_string_t* usbd_get_desc_string_serial(usbd_handle_t* handle) {
     VERIFY_HANDLE(handle, NULL);
     return (const usb_desc_string_t*)handle->desc_serial_buf;
+}
+
+bool usbd_hex_to_desc_string(const uint8_t* hex, uint8_t hex_len, 
+                             void* desc_buf, uint16_t desc_buf_len) {
+    if (!hex || !desc_buf || (desc_buf_len < (2 + (hex_len * 4)))) {
+        usb_loge("Error: Invalid hex or desc_buf\n");
+        return false;
+    }
+    usb_desc_string_t* desc = (usb_desc_string_t*)desc_buf;
+    desc->bLength = 2 + hex_len * 4;
+    desc->bDescriptorType = USB_DTYPE_STRING;
+    uint16_t* wstr = desc->wString;
+    static const char hex_chars[] = "0123456789ABCDEF";
+    for (uint8_t i = 0; i < hex_len; ++i) {
+        wstr[i * 2 + 0] = hex_chars[(hex[i] >> 4) & 0xF];
+        wstr[i * 2 + 1] = hex_chars[hex[i] & 0xF];
+    }
+    return true;
 }
 
 #endif /* USBD_DEVICES_MAX */

@@ -60,7 +60,7 @@ typedef struct dcd_driver_      dcd_driver_t;
 typedef struct usbd_handle_     usbd_handle_t;
 
 typedef void (*usbd_endpoint_cb)(usbd_handle_t* handle, usbd_event_t event, uint8_t epaddr);
-typedef void (*usbd_request_cb)(usbd_handle_t* handle, usb_ctrl_req_t* req);
+typedef void (*usbd_request_cb)(usbd_handle_t* handle, const usb_ctrl_req_t* req);
 
 /* ---- Application callbacks ---- */
 
@@ -359,6 +359,23 @@ void usbd_reset_device(usbd_handle_t* handle);
  * @return Pointer to the serial number string descriptor.
  */
 const usb_desc_string_t* usbd_get_desc_string_serial(usbd_handle_t* handle);
+
+/**
+ * @brief Convert a hex array to a USB descriptor string.
+ * 
+ * This function will convert a hex array to a USB string descriptor.
+ * 
+ * @note Destination buffer should be at least 4 * hex_len + 2 bytes long
+ * 
+ * @param hex Pointer to the hex array.
+ * @param hex_len Length of the hex array.
+ * @param desc_buf Pointer to the descriptor buffer to store the result.
+ * @param desc_buf_len Length of the descriptor buffer.
+ * 
+ * @return true if the conversion was successful, 
+ *         false if destination buffer is too small.
+ */
+bool usbd_hex_to_desc_string(const uint8_t* hex, uint8_t hex_len, void* desc_buf, uint16_t desc_buf_len);
 
 #ifdef __cplusplus
 }
