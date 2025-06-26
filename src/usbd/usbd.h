@@ -309,7 +309,8 @@ bool usbd_ep_ready(usbd_handle_t* handle, uint8_t epaddr);
  * 
  * Function will write data to the specified endpoint.
  * Input buffer is copied immediately and does not need to
- * be available after calling.
+ * be available after calling. Bulk/chunked transfers 
+ * should be handled in the user's application.
  * 
  * @param handle Pointer to the USB handle structure.
  * @param epaddr Endpoint address.
@@ -324,6 +325,8 @@ int32_t usbd_ep_write(usbd_handle_t* handle, uint8_t epaddr, const void *buffer,
  * @brief Read data from an endpoint.
  * 
  * Function will read data from the specified endpoint.
+ * Bulk/chunked transfers should be handled in the user's
+ * application.
  * 
  * @param handle Pointer to the USB handle structure.
  * @param epaddr Endpoint address.
@@ -342,8 +345,8 @@ int32_t usbd_ep_read(usbd_handle_t* handle, uint8_t epaddr, void *buffer, uint16
  * @param handle Pointer to the USB handle structure.
  * 
  * @note This function is intended for use on a hub's downstream 
- *       devices in response to a reset feature request. Use otherwise
- *       is not recommended.
+ *       devices in response to a reset feature request. Otherwise
+ *       using this is not recommended.
  */
 void usbd_reset_device(usbd_handle_t* handle);
 
@@ -351,7 +354,7 @@ void usbd_reset_device(usbd_handle_t* handle);
  * @brief Get the USB serial number string descriptor.
  * 
  * This function will return a pointer to a serial number string
- * descriptor. The descriptor is generated from the unique
+ * descriptor. The descriptor is generated from the Pico's unique
  * board ID and port number of the handle.
  * 
  * @param handle Pointer to the USB handle structure.
@@ -361,21 +364,21 @@ void usbd_reset_device(usbd_handle_t* handle);
 const usb_desc_string_t* usbd_get_desc_string_serial(usbd_handle_t* handle);
 
 /**
- * @brief Convert a hex array to a USB descriptor string.
+ * @brief Convert a byte array to a USB descriptor string.
  * 
- * This function will convert a hex array to a USB string descriptor.
+ * This function will convert a byte array to a USB string descriptor.
  * 
- * @note Destination buffer should be at least 4 * hex_len + 2 bytes long
+ * @note Destination buffer should be at least 4 * array_len + 2 bytes long
  * 
- * @param hex Pointer to the hex array.
- * @param hex_len Length of the hex array.
+ * @param array Pointer to the byte array.
+ * @param array_len Length of the byte array.
  * @param desc_buf Pointer to the descriptor buffer to store the result.
  * @param desc_buf_len Length of the descriptor buffer.
  * 
  * @return true if the conversion was successful, 
  *         false if destination buffer is too small.
  */
-bool usbd_hex_to_desc_string(const uint8_t* hex, uint8_t hex_len, void* desc_buf, uint16_t desc_buf_len);
+bool usbd_hex_to_desc_string(const uint8_t* array, uint8_t array_len, void* desc_buf, uint16_t desc_buf_len);
 
 #ifdef __cplusplus
 }
