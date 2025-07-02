@@ -69,6 +69,29 @@ static void usbd_ep_complete_cb(usbd_handle_t* handle, usbd_event_t event, uint8
     handle->app_driver.ep_xfer_cb(handle, epaddr);
 }
 
+static void usbd_ep_bulk_in_complete_cb(usbd_handle_t* handle, usbd_event_t event, uint8_t epaddr) {
+    uint8_t epnum = USB_EP_NUM(epaddr);
+    usbd_ep_t* ep = &handle->eps[epnum];
+    if (ep->remaining <= 0 && !ep->zlp) {
+        ep->buffer = NULL;
+        ep->remaining = 0;
+        ep->complete_cb = usbd_ep_complete_cb;
+        handle->app_driver.ep_xfer_cb(handle, epaddr);
+    } else {
+        int32_t ret = handle->dcd_driver->ep_write(
+            handle->port, 
+            epaddr, 
+            ep->buffer, 
+            ep->remaining
+        );
+        ep->remaining -= ret;
+        ep->buffer += ret;
+        if (ep->zlp && (ret == 0)) {
+            ep->zlp = false;
+        }
+    }
+}
+
 static void usbd_set_address_cb(usbd_handle_t* handle, const usb_ctrl_req_t* req) {
     handle->dcd_driver->set_address(handle->port, req->wValue);
     handle->state = (req->wValue) ? USBD_STATE_ADDRESSED : USBD_STATE_DEFAULT;
@@ -85,7 +108,7 @@ static bool usbd_process_set_config_req(usbd_handle_t* handle, uint8_t config) {
     if (config == 0) {
         handle->state = USBD_STATE_ADDRESSED;
         for (uint8_t i = 1; i < USBD_ENDPOINTS_MAX; i++) {
-            handle->endpoint_cb[i] = NULL;
+            memset(&handle->eps[i], 0, sizeof(usbd_ep_t));
             handle->dcd_driver->ep_close(handle->port, i | USB_EP_DIR_IN);
             handle->dcd_driver->ep_close(handle->port, i | USB_EP_DIR_OUT);
         }
@@ -384,8 +407,8 @@ static void usbd_process_event(usbd_handle_t* handle, usbd_event_t event, uint8_
         break;
     case USBD_EVENT_SETUP:
     case USBD_EVENT_EP_CMPLT:
-        if (handle->endpoint_cb[epnum] != NULL) {
-            handle->endpoint_cb[epnum](handle, event, epaddr);
+        if (handle->eps[epnum].complete_cb != NULL) {
+            handle->eps[epnum].complete_cb(handle, event, epaddr);
         } else {
             usb_logd("No endpoint callback for %02X\n", epaddr);
         }
@@ -456,7 +479,7 @@ usbd_handle_t* usbd_init(usbd_hw_type_t hw_type, const usbd_driver_t *driver, ui
     handle->hw_type = hw_type;
     handle->app_driver = *driver;
     handle->ctrl_ep_size = ep0_size;
-    handle->endpoint_cb[0] = usbd_process_ctrl_ep;
+    handle->eps[0].complete_cb = usbd_process_ctrl_ep;
     usbd_assign_unique_id(handle);
     handle->state = USBD_STATE_DEFAULT;
 
@@ -539,7 +562,9 @@ void usbd_reset_device(usbd_handle_t* handle) {
     handle->app_driver.deinit_cb(handle);
     memset(&handle->ctrl_ep, 0, sizeof(handle->ctrl_ep));
     for (uint8_t i = 0; i < USBD_ENDPOINTS_MAX; i++) {
-        handle->endpoint_cb[i] = NULL;
+        handle->eps[i].complete_cb = NULL;
+        handle->eps[i].size = 0;
+        handle->eps[i].buffer = NULL;
         handle->dcd_driver->ep_close(handle->port, i | USB_EP_DIR_IN);
         handle->dcd_driver->ep_close(handle->port, i | USB_EP_DIR_OUT);
     }
@@ -548,7 +573,7 @@ void usbd_reset_device(usbd_handle_t* handle) {
                                 USB_EP_TYPE_CONTROL, handle->ctrl_ep_size);
     handle->dcd_driver->ep_open(handle->port, 0 | USB_EP_DIR_OUT, 
                                 USB_EP_TYPE_CONTROL, handle->ctrl_ep_size);
-    handle->endpoint_cb[0] = usbd_process_ctrl_ep;
+    handle->eps[0].complete_cb = usbd_process_ctrl_ep;
     handle->app_driver.init_cb(handle);
     usb_logd("Reset Device Port %d\n", handle->port);
 }
@@ -571,6 +596,7 @@ bool usbd_ep_ready(usbd_handle_t* handle, uint8_t epaddr) {
     VERIFY_HANDLE(handle, false);
     VERIFY_COND(USB_EP_NUM(epaddr) < USBD_ENDPOINTS_MAX, false);
     VERIFY_COND(handle->state == USBD_STATE_CONFIGURED, false);
+    VERIFY_COND(handle->eps[USB_EP_NUM(epaddr)].buffer == NULL, false);
     return handle->dcd_driver->ep_ready(handle->port, epaddr);
 }
 
@@ -578,6 +604,7 @@ void usbd_ep_flush(usbd_handle_t* handle, uint8_t epaddr) {
     VERIFY_HANDLE(handle, );
     VERIFY_COND(USB_EP_NUM(epaddr) < USBD_ENDPOINTS_MAX, );
     VERIFY_COND(handle->state == USBD_STATE_CONFIGURED, );
+    handle->eps[USB_EP_NUM(epaddr)].buffer = NULL;
     handle->dcd_driver->ep_xfer_abort(handle->port, epaddr);
 }
 
@@ -586,6 +613,28 @@ int32_t usbd_ep_write(usbd_handle_t* handle, uint8_t epaddr, const void* buffer,
     VERIFY_COND(USB_EP_NUM(epaddr) < USBD_ENDPOINTS_MAX, -1);
     VERIFY_COND(handle->state == USBD_STATE_CONFIGURED, -1);
     return handle->dcd_driver->ep_write(handle->port, epaddr, buffer, len);
+}
+
+bool usbd_ep_write_bulk(usbd_handle_t* handle, uint8_t epaddr, const void *buffer, uint16_t len) {
+    uint8_t epnum = USB_EP_NUM(epaddr);
+    VERIFY_HANDLE(handle, false);
+    VERIFY_COND(epnum < USBD_ENDPOINTS_MAX, false);
+    VERIFY_COND((epaddr & USB_EP_DIR_IN) != 0, false);
+    VERIFY_COND(handle->state == USBD_STATE_CONFIGURED, false);
+    VERIFY_COND(handle->eps[epnum].buffer == NULL, false);
+
+    int32_t ret = handle->dcd_driver->ep_write(handle->port, epaddr, buffer, len);
+    if (ret < 0) {
+        usb_loge("Error: EP write failed, port: %d, epaddr: %02X, len: %d\n", 
+            handle->port, epaddr, len);
+        return false;
+    }
+    usbd_ep_t* ep = &handle->eps[epnum];
+    ep->complete_cb = usbd_ep_bulk_in_complete_cb;
+    ep->buffer = (const uint8_t*)buffer + ret;
+    ep->remaining = len - ret;
+    ep->zlp = ((len % ep->size) == 0);
+    return true;
 }
 
 int32_t usbd_ep_read(usbd_handle_t* handle, uint8_t epaddr, void* buffer, uint16_t len) {
@@ -601,7 +650,9 @@ bool usbd_ep_open(usbd_handle_t* handle, uint8_t epaddr, uint8_t epattr, uint16_
     uint8_t epnum = USB_EP_NUM(epaddr);
     /* App facing ep open shouldn't touch EP 0 */
     if ((epnum > 0) && (epnum < USBD_ENDPOINTS_MAX)) {
-        handle->endpoint_cb[epnum] = usbd_ep_complete_cb;
+        memset(&handle->eps[epnum], 0, sizeof(usbd_ep_t));
+        handle->eps[epnum].complete_cb = usbd_ep_complete_cb;
+        handle->eps[epnum].size = epsize;
         return handle->dcd_driver->ep_open(handle->port, epaddr, epattr, epsize);
     }
     return false;
@@ -640,7 +691,6 @@ bool usbd_configure_all_eps(usbd_handle_t* handle, const void* desc_config) {
                                 desc_ep->wMaxPacketSize
                             );
                 if (open) {
-                    handle->endpoint_cb[epnum] = usbd_ep_complete_cb;
                     num_eps++;
                 } else {
                     usb_loge("  Failed to open EP %02X\n", 

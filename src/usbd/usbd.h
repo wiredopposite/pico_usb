@@ -177,6 +177,14 @@ typedef struct usbd_ctrl_ep_ {
     uint16_t    rx_len;
 } usbd_ctrl_ep_t;
 
+typedef struct {
+    usbd_endpoint_cb    complete_cb;
+    uint16_t            size;
+    const uint8_t*      buffer;
+    int32_t             remaining;
+    bool                zlp;
+} usbd_ep_t;
+
 typedef struct usbd_handle_ {
     uint8_t             port;
     usbd_state_t        state;
@@ -188,7 +196,7 @@ typedef struct usbd_handle_ {
 
     uint16_t            ctrl_ep_size;
     usbd_ctrl_ep_t      ctrl_ep;
-    usbd_endpoint_cb    endpoint_cb[USBD_ENDPOINTS_MAX];
+    usbd_ep_t           eps[USBD_ENDPOINTS_MAX];
     
     uint8_t             desc_serial_buf[USBD_SERIAL_BUF_SIZE] __attribute__((aligned(2)));
 } usbd_handle_t;
@@ -309,8 +317,9 @@ bool usbd_ep_ready(usbd_handle_t* handle, uint8_t epaddr);
  * 
  * Function will write data to the specified endpoint.
  * Input buffer is copied immediately and does not need to
- * be available after calling. Bulk/chunked transfers 
- * should be handled in the user's application.
+ * be available after calling. Bulk transfers greater than
+ * the endpoint size should use the usbd_ep_write_bulk() 
+ * method instead of this.
  * 
  * @param handle Pointer to the USB handle structure.
  * @param epaddr Endpoint address.
@@ -320,6 +329,24 @@ bool usbd_ep_ready(usbd_handle_t* handle, uint8_t epaddr);
  * @return Number of bytes written or -1 on failure.
  */
 int32_t usbd_ep_write(usbd_handle_t* handle, uint8_t epaddr, const void *buffer, uint16_t len);
+
+/**
+ * @brief Queue data to be written to a bulk endpoint.
+ * 
+ * Function will write data to the specified endpoint
+ * in a non-blocking manner. The buffer must be available
+ * until the entire transfer is complete, at which point
+ * the ep_xfer_cb callback will be invoked.
+ * 
+ * @param handle Pointer to the USB handle structure.
+ * @param epaddr Endpoint address.
+ * @param buffer Pointer to the data buffer to send.
+ * @param len Length of the data to send.
+ * 
+ * @return true if the transfer was queued successfully,
+ *         false if the endpoint is not ready.
+ */
+bool usbd_ep_write_bulk(usbd_handle_t* handle, uint8_t epaddr, const void *buffer, uint16_t len);
 
 /**
  * @brief Read data from an endpoint.

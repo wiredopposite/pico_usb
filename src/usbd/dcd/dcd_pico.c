@@ -195,9 +195,9 @@ static bool pico_usbd_ep_config(uint8_t dport, uint8_t epaddr, uint8_t eptype, u
         ep->epsize = epsize;
     } else {
         ep->epsize = ((epsize + 63) / 64) * 64; // Round up to nearest 64 bytes
-        if (ep->eptype & USB_EP_TYPE_BULK) {
-            ep->epsize *= 2;
-        }
+        // if (ep->eptype & USB_EP_TYPE_BULK) {
+        //     ep->epsize *= 2;
+        // }
         if ((next_buffer_offset + ep->epsize) > sizeof(usb_dpram->epx_data)) {
             return false; // Not enough space in DPRAM
         }
@@ -321,7 +321,7 @@ static void pico_usbd_ep_xfer_abort(uint8_t dport, uint8_t epaddr) {
         usb_hw_clear->abort_done = abort;
         usb_hw_clear->abort = abort;
     }
-    printf("Aborted EP %02X transfer\n", epaddr);
+    usb_logv("Aborted EP %02X transfer\n", epaddr);
 }
 
 static bool pico_usbd_ep_ready(uint8_t dport, uint8_t epaddr) {
