@@ -452,6 +452,7 @@ usbd_handle_t* usbd_init(usbd_hw_type_t hw_type, const usbd_driver_t *driver, ui
         }
         break;
     case USBD_HW_PIO:
+#if USBD_PIO_ENABLED
         for (uint8_t i = 0; i < ARRAY_SIZE(handles); i++) {
             if (!handles[i].state != USBD_STATE_DISABLED) {
                 handle = &handles[i];
@@ -471,6 +472,7 @@ usbd_handle_t* usbd_init(usbd_hw_type_t hw_type, const usbd_driver_t *driver, ui
             return NULL;
         }
         break;
+#endif
     default:
         usb_loge("Error: Invalid HW type\n");
         return NULL;
@@ -552,7 +554,9 @@ void usbd_connect(usbd_hw_type_t hw_type) {
     if (hw_type == USBD_HW_USB) {
         DCD_DRIVER_PICO.connect();
     } else if (hw_type == USBD_HW_PIO) {
+#if USBD_PIO_ENABLED
         DCD_DRIVER_PIO.connect();
+#endif
     }
 }
 

@@ -45,7 +45,9 @@ typedef struct dcd_driver_ {
 } dcd_driver_t;
 
 extern const dcd_driver_t DCD_DRIVER_PICO;
+#if USBD_PIO_ENABLED
 extern const dcd_driver_t DCD_DRIVER_PIO;
+#endif
 
 #ifdef __cplusplus
 }

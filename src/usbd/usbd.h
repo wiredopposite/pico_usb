@@ -27,6 +27,10 @@ extern "C" {
 #define USBD_ENUMERATION_SIZE   256
 #endif
 
+#ifndef USBD_PIO_ENABLED
+#define USBD_PIO_ENABLED 1
+#endif
+
 #define USBD_SERIAL_BUF_SIZE (sizeof(usb_desc_string_t) + (PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4) + 4)
 
 typedef enum {
