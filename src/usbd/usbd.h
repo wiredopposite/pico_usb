@@ -293,6 +293,17 @@ bool usbd_configure_all_eps(usbd_handle_t* handle, const void* desc_config);
 bool usbd_send_ctrl_resp(usbd_handle_t* handle, const void *buffer, uint16_t len, usbd_request_cb complete_cb);
 
 /**
+ * @brief Set or clear an endpoint stall.
+ *
+ * @param handle Pointer to the USB handle structure.
+ * @param epaddr Endpoint address.
+ * @param stall True to stall the endpoint, false to clear the stall.
+ *
+ * @return true if the request was accepted, false otherwise.
+ */
+bool usbd_ep_set_stall(usbd_handle_t* handle, uint8_t epaddr, bool stall);
+
+/**
  * @brief Flush an endpoint and abort any queued transfer.
  *
  * Function will abort/clear any queued IN/OUT transfer.

@@ -164,6 +164,10 @@ static void pico_usbd_ep_set_stall(uint8_t dport, uint8_t epaddr, bool stall) {
     } else {
         if (USB_EP_NUM(epaddr) != 0) {
             *EP_BUF_CTRL(epaddr) &= ~USB_BUF_CTRL_STALL;
+            ep->pid = 0;
+            if (!(epaddr & USB_EP_DIR_IN)) {
+                rearm_ep_out(epaddr);
+            }
         }
     }
     ep->pid = 0;

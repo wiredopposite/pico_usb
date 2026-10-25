@@ -604,6 +604,14 @@ bool usbd_ep_ready(usbd_handle_t* handle, uint8_t epaddr) {
     return handle->dcd_driver->ep_ready(handle->port, epaddr);
 }
 
+bool usbd_ep_set_stall(usbd_handle_t* handle, uint8_t epaddr, bool stall) {
+    VERIFY_HANDLE(handle, false);
+    VERIFY_COND(USB_EP_NUM(epaddr) < USBD_ENDPOINTS_MAX, false);
+    VERIFY_COND(handle->state == USBD_STATE_CONFIGURED, false);
+    handle->dcd_driver->ep_set_stall(handle->port, epaddr, stall);
+    return true;
+}
+
 void usbd_ep_flush(usbd_handle_t* handle, uint8_t epaddr) {
     VERIFY_HANDLE(handle, );
     VERIFY_COND(USB_EP_NUM(epaddr) < USBD_ENDPOINTS_MAX, );
