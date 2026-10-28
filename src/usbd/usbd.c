@@ -42,19 +42,15 @@ static void usbd_assign_unique_id(usbd_handle_t* handle) {
         char low = byte & 0x0F;
         high = (high < 10) ? ('0' + high) : ('A' + high - 10);
         low  = (low  < 10) ? ('0' + low)  : ('A' + low  - 10);
-        str->wString[i * 4 + 0] = high;
-        str->wString[i * 4 + 1] = 0;
-        str->wString[i * 4 + 2] = low;
-        str->wString[i * 4 + 3] = 0;
+        str->wString[i * 2 + 0] = high;
+        str->wString[i * 2 + 1] = low;
     }
     char port_high = (handle->port >> 4) & 0x0F;
     char port_low  = handle->port & 0x0F;
     port_high = (port_high < 10) ? ('0' + port_high) : ('A' + port_high - 10);
     port_low  = (port_low  < 10) ? ('0' + port_low)  : ('A' + port_low  - 10);
-    str->wString[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4 + 0] = port_high;
-    str->wString[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4 + 1] = 0;
-    str->wString[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4 + 2] = port_low;
-    str->wString[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 4 + 3] = 0;
+    str->wString[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 0] = port_high;
+    str->wString[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1] = port_low;
 }
 
 static void usbd_stall_ctrl_ep(usbd_handle_t* handle) {
